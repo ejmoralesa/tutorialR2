@@ -1,0 +1,624 @@
+---
+title: "Transformación de data con dplyr"
+output:
+  learnr::tutorial:
+    progressive: true
+    allow_skip: true
+runtime: shiny_prerendered
+description: >
+  Tutorial de transformación de data con dplyr.
+---
+
+```{r setup, include=FALSE}
+
+library(learnr)
+library(tidyverse)
+library(rsconnect)
+library(markdown)
+library(readxl)
+
+BD <- read_excel("marketing_campaign.xlsx")
+BD$enrollmentDate <- as.Date(BD$enrollmentDate)
+BD$maritalStatus <- as.factor(BD$maritalStatus)
+
+BD2 <- read_excel("employee.xlsx")
+BD2$gender <- as.factor(BD2$gender)
+BD2$education <- as.factor(BD2$education)
+
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+## **Conceptos iniciales**
+
+------------------------------------------------------------------------
+
+#### ***tidyverse***
+
+![](Charizard%20PNG.png)
+
+El *tidyverse* es una colección de paquetes que facilita la manipulación y análisis de datos en R.
+
+------------------------------------------------------------------------
+
+#### ***dplyr***
+
+Al recibir una base de datos, usualmente la información no está completamente lista para ser analizada. Por eso es necesario limpiar, ordenar y/o modificar los datos antes de poder hacer gráficos y modelos. Este proceso previo al análisis es conocido como transformación de data.
+
+*dplyr* es la librería del tidyverse dedicada a la transformación de data.
+
+------------------------------------------------------------------------
+
+#### ***data frame***
+
+Un *data frame* es la presentación más común de una base de datos. Tiene la forma de una tabla, donde cada fila corresponde a una observación y cada columna a una variable.
+
+------------------------------------------------------------------------
+
+#### ***tibbles***
+
+Un *tibble* es un data frame con un formato más amigable. Al usar paquetes del tidyverse, es conveniente usar *tibbles*.
+
+------------------------------------------------------------------------
+
+#### **Funciones útiles de *dplyr***
+
+-   Filtrar observaciones según sus valores: `filter()`
+
+-   Reordenar las filas: `arrange()`
+
+-   Seleccionar variables según sus nombres: `select()`
+
+-   Crear nuevas variables en función de variables iniciales: `mutate()`
+
+-   Calcular valores de resumen de variables: `summarize()`
+
+------------------------------------------------------------------------
+
+#### **Estructuras de datos y tipos de datos**
+
+En R la información se manipula en estructuras de datos, que son maneras de organizar datos en una computadora. Algunas estructuras de datos en R son:
+
+-   ***data frame***: toda una base de datos.
+
+-   ***vector***: una columna (variable) o una fila (observación) de una base de datos.
+
+-   ***factor***: una variable categórica, como departamento (Lima, Junín, Cusco, etc.) o grado académico (bachiller, magíster, doctor).
+
+Por otro lado, los datos en sí, que están dentro de las estructuras de datos, pueden ser de distintos tipos. Algunos tipos de datos en R son:
+
+-   ***character***: cualquier combinación de caracteres (letras, números y signos), como nombres o códigos.
+
+-   ***numeric***: números.
+
+-   ***logical***: verdadero (*true*) o falso (*false*).
+
+------------------------------------------------------------------------
+
+#### **Piping**
+
+El operador pipe %\>% sirve para aplicar fácilmente una secuencia de transformaciones a una base de datos (más adelante se verán ejemplos de su uso).
+
+Comando para escribir %\>%: CTRL+SHIFT+M
+
+------------------------------------------------------------------------
+
+#### **Operadores lógicos**
+
+| \< ; \>        | Menor a ; Mayor a                 |
+|----------------|-----------------------------------|
+| \<= ; \>=      | Menor o igual a ; Mayor o igual a |
+| == ; !=        | Igual a ; Distinto a              |
+| %in%           | Pertenece al grupo                |
+| is.na ; !is.na | Es NA (no disponible) ; No es NA  |
+
+------------------------------------------------------------------------
+
+#### **Operadores booleanos**
+
+| & ; \| | Y ; O                   |
+|--------|-------------------------|
+| !      | Negación (Es falso que) |
+| any()  | Alguno es verdadero     |
+| all()  | Todos son verdaderos    |
+
+## **Conociendo la base de datos**
+
+------------------------------------------------------------------------
+
+Nuestra primera base de datos: **Consumer Personality Analysis**
+
+*Versión resumida de: [\<https://www.kaggle.com/imakash3011/customer-personality-analysis/\>](https://www.kaggle.com/imakash3011/customer-personality-analysis/){.uri}*
+
+Para una empresa, un análisis de la personalidad del cliente sirve para comprender mejor a sus clientes, para ofrecer productos de acuerdo con las necesidades y preferencias específicas de los diferentes segmentos de clientes.
+
+Esta base de datos tiene información sobre los clientes de una tienda. Cada observación corresponde a un cliente en particular.
+
+Esta, nuestra primera base de datos, se guardará con el nombre "BD". Cuando mencionemos este nombre en el código, estaremos refiriéndonos a esta primera base de datos.
+
+```{r BD, echo=FALSE}
+
+BD
+```
+
+------------------------------------------------------------------------
+
+#### **Variables**
+
+-   ***id***: identificador único del cliente.
+
+-   ***birthYear***: año de nacimiento del cliente.
+
+-   ***numChildrenHome***: número de niños y adolescentes en el hogar del cliente.
+
+-   ***maritalStatus***: estado civil del cliente.
+
+-   ***income***: ingreso anual del hogar del cliente.
+
+-   ***enrollmentDate***: fecha de inscripción del cliente a la tienda.
+
+-   ***daysLastPurchase***: número de días transcurridos desde la última compra del cliente.
+
+-   ***numStorePurchases***: número de compras del cliente en la tienda.
+
+-   ***numWebPurchases***: número de compras del cliente en la web.
+
+------------------------------------------------------------------------
+
+#### **Tipos de variables**
+
+*maritalStatus* es una variable categórica. Contiene 6 tipos de estado civil.
+
+```{r TipoVariable1, echo=TRUE}
+
+class(BD$maritalStatus)
+levels(BD$maritalStatus)
+```
+
+*enrollmentDate* es un objeto de tipo fecha.
+
+```{r TipoVariable2, echo=TRUE}
+
+class(BD$enrollmentDate)
+```
+
+Todas las otras variables son numéricas.
+
+## **Extraer observaciones**
+
+------------------------------------------------------------------------
+
+### Extraer un subconjunto de observaciones (líneas)
+
+![](1.%20Subset%20observations%20(rows).PNG)
+
+------------------------------------------------------------------------
+
+### 1. Filtrar observaciones según sus valores con `filter()`
+
+Filtrar clientes sin hijos y solteros:
+
+```{r filter1, echo=TRUE}
+
+filter(BD, numChildrenHome==0, maritalStatus=="Single")
+```
+
+Filtrar clientes menores a 30 años en 2021:
+
+```{r filter2, echo=TRUE}
+
+filter(BD, birthYear>1991) #son equivalentes
+
+filter(BD, !(birthYear<=1991))
+```
+
+------------------------------------------------------------------------
+
+### 2. Elegir filas según sus posiciones con `slice()`
+
+Ordenar clientes según edad, de menor a mayor:
+
+```{r arrange1, echo=TRUE}
+
+arrange(BD, desc(birthYear))
+```
+
+Elegir las observaciones sexta a décima:
+
+```{r slice1, echo=TRUE}
+
+slice(arrange(BD, desc(birthYear)), 6:10)
+```
+
+## **Extraer variables**
+
+------------------------------------------------------------------------
+
+### Extraer un subconjunto de variables (columnas)
+
+La función `select()` sirve para elegir columnas según nombre. Además, otras funciones pueden usarse junto a `select()` (como argumentos) para elegir columnas según criterios específicos.
+
+![](2.%20Subset%20variables%20(columns).PNG)
+
+------------------------------------------------------------------------
+
+### 1. Elegir columnas según nombre:
+
+Elegir columnas de número de compras (numStorePurchases y numWebPurchases):
+
+```{r select1, echo=TRUE}
+
+select(BD, numStorePurchases, numWebPurchases)
+```
+
+------------------------------------------------------------------------
+
+### 2. Elegir columnas cuyo nombre contiene cierta cadena de caracteres
+
+Elegir columnas de número de compras, identificándolas si sus nombres [contienen]{.ul} la palabra "Purchases":
+
+```{r select2, echo=TRUE}
+
+select(BD, contains("Purchases"))
+```
+
+------------------------------------------------------------------------
+
+### 3. Elegir columnas cuyos nombres terminan en cierta cadena de caracteres
+
+Elegir columnas de número de compras, identificándolas si sus nombres [terminan]{.ul} en "Purchases":
+
+```{r select3, echo=TRUE}
+
+select(BD, ends_with("Purchases"))
+```
+
+------------------------------------------------------------------------
+
+### 4. Elegir columnas cuyos nombres empiezan en cierta cadena de caracteres
+
+Elegir columnas identificándolas si sus nombres [empiezan]{.ul} en "num":
+
+```{r select4, echo=TRUE}
+
+select(BD, starts_with("num"))
+```
+
+------------------------------------------------------------------------
+
+### 5. Elegir columnas cuyo nombre coincide con cierta expresión
+
+Elegir columnas cuyos nombres empiezan en "num", seguido de otros caracteres:
+
+```{r select5, echo=TRUE}
+
+select(BD, matches("num."))
+```
+
+------------------------------------------------------------------------
+
+### 6. Elegir columnas cuyos nombres pertenecen a un conjunto de nombres
+
+Elegir solo las columnas de la lista:
+
+```{r select6, echo=TRUE}
+
+select(BD, all_of(c("id","birthYear","income")))
+```
+
+------------------------------------------------------------------------
+
+### 7. Elegir columnas entre dos columnas
+
+Elegir las columnas ubicadas entre "birthYear" e "income":
+
+```{r select7, echo=TRUE}
+
+select(BD, birthYear:income)
+```
+
+Elegir todas las columnas, excepto las ubicadas entre "birthYear" e "income":
+
+```{r select8, echo=TRUE}
+
+select(BD, !birthYear:income)
+```
+
+------------------------------------------------------------------------
+
+### 8. Elegir columnas excepto una columna
+
+Elegir todas las columnas, excepto "income":
+
+```{r select9, echo=TRUE}
+
+select(BD, -income)
+select(BD, -c(id,income))
+```
+
+## **Resumen de variables**
+
+------------------------------------------------------------------------
+
+### Calcular valores de resumen de variables
+
+`summarise()` sirve para resumir la información de una BD en algunos valores importantes, como el mínimo, máximo, media, mediana, varianza, desviación estándar, etc.
+
+¿Cómo funciona `summarise()`?
+
+1.  Recibe 2 argumentos: una BD y un conjunto de grupos (subdivisiones) aplicables a las observaciones de la BD.
+2.  Para cada grupo, calcula los valores importantes indicados.
+3.  Devuelve una nueva BD, donde los valores calculados son las variables.
+
+Una manera de construir las subdivisiones a usar como argumento en `summarise()` es con la función `group_by()`.
+
+`group_by()` subdivide la BD para que las siguientes funciones se apliquen a cada subdivisión por separado (estas subdivisiones no se pueden ver, pero sí existen).
+
+Para usar `group_by()` y `summarise()` más facilmente, se emplea el operador **pipe %\>%** (comentado anteriormente).
+
+------------------------------------------------------------------------
+
+[Ejemplo]{.ul}: Calcular la media y mediana de ingresos de clientes según estado civil.
+
+```{r summarise1, echo=TRUE}
+
+BDagrupadaEstadoCivil <- BD %>%
+  group_by(maritalStatus) %>%
+  summarise(mediaIncome=mean(income), medianaIncome=median(income))
+
+BDagrupadaEstadoCivil
+```
+
+En este ejemplo se calculó la media (`mean()`) y mediana (`median()`) del ingreso. De la misma manera, se pueden calcular el mínimo (`min()`), máximo (`max()`), varianza (`var()`) y desviación estándar (`sd()`), entre otros valores de resumen.
+
+------------------------------------------------------------------------
+
+`count()` sirve para conocer cuántos valores distintos tiene una variable en particular o cúantos valores distintos tiene una combinación de variables.
+
+[Ejemplo]{.ul}: Indicar el número de clientes según estado civil y número de hijos en casa.
+
+```{r count1, echo=TRUE}
+
+BDagrupadaEstadoCivil <- BD %>%
+  count(maritalStatus,numChildrenHome)
+
+BDagrupadaEstadoCivil
+```
+
+## **Nuevas variables**
+
+------------------------------------------------------------------------
+
+### Crear nuevas variables
+
+`mutate()` sirve para crear una nueva variable e incluirla en la BD.
+
+[Ejemplo]{.ul}: Crear nueva variable de número total de compras por cliente.
+
+```{r mutate1, echo=TRUE}
+
+BDnuevaVariable <- BD %>%
+  mutate(numTotalPurchases=numStorePurchases+numWebPurchases)
+
+BDnuevaVariable
+```
+
+------------------------------------------------------------------------
+
+`cumsum()` y `cummean()`, que sirven para calcular la suma acumulada y el promedio acumulado de una variable, respectivamente, tendrán recurrentes aplicaciones en el curso. Son utilizadas como argumento de *mutate()* para que sus valores aparezcan en una nueva variable.
+
+[Ejemplo]{.ul}: Crear nueva variable de promedio acumulado.
+
+```{r mutate2, echo=TRUE}
+
+BDpromedioAcumulado <- BD %>%
+  arrange(income) %>% #primero se ordena según ingreso
+  mutate(cummean(income))
+
+BDpromedioAcumulado
+```
+
+## **Ejercicios**
+
+------------------------------------------------------------------------
+
+Nuestra segunda base de datos: **Employee Future Prediction**
+
+*Versión resumida de: [\<https://www.kaggle.com/tejashvi14/employee-future-prediction/\>](https://www.kaggle.com/tejashvi14/employee-future-prediction/){.uri}*
+
+Esta base de datos contiene información laboral y personal sobre empleados de una empresa. Cada línea corresponde a un empleado, pero no se especifica su nombre o código único para no ser identificado.
+
+Esta, nuestra segunda base de datos, se guardará con el nombre "BD2". Cuando mencionemos este nombre en el código, estaremos refiriéndonos a esta segunda base de datos.
+
+```{r BD2, echo=FALSE}
+
+BD2
+```
+
+------------------------------------------------------------------------
+
+#### **Variables**
+
+-   ***age***: edad del empleado.
+
+-   ***gender***: género del empleado.
+
+-   ***education***: grado académico más avanzado del empleado.
+
+-   ***joiningYear***: año de ingreso del empleado a la empresa.
+
+-   ***compensationTier***: escala de compensación económica del empleado. Existen 3 escalas de compensación. La escala 1 corresponde a la compensación más alta y la 3 a la más baja.
+
+-   ***currentFieldExperience***: experiencia del empleado en el campo laboral donde se desempeña actualmente.
+
+------------------------------------------------------------------------
+
+### 
+
+### I. Ejercicios de extracción de subconjuntos de observaciones (líneas) y variables (columnas)
+
+Se presentan tres tipos de ejercicios, según nivel de dificultad: ![](Charmander%20PNG.png){width="26" height="30"}![](Charmeleon%20PNG.png){width="38" height="44"}![](Charizard%20PNG.png){width="67"}
+
+1.  Mostrar solo empleadas mujeres con nivel académico de postgrado (maestría o PhD). ![](Charmander%20PNG.png){width="26" height="30"}
+
+```{r ejercicioI1, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioI1-solution}
+
+filter(BD2, gender=="Female", (education=="Masters")|(education=="PHD"))
+```
+
+2.  Mostrar solo "estrellas emergentes": empleados menores de 30 años con el más alto nivel de compensación. ![](Charmander%20PNG.png){width="26" height="30"}
+
+```{r ejercicioI2, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioI2-solution}
+
+filter(BD2, age<30, compensationTier==1)
+```
+
+3.  Extraer variables de información laboral del empleado (educación, año de ingreso, compensación y experiencia). ![](Charmander%20PNG.png){width="26" height="30"}
+
+```{r ejercicioI3, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioI3-solution}
+
+select(BD2, education, joiningYear, compensationTier, currentFieldExperience)
+```
+
+4.  Para un tratamiento género-ciego de la información de los empleados, excluir la variable género. ![](Charmander%20PNG.png){width="26" height="30"}
+
+```{r ejercicioI4, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioI4-solution}
+
+select(BD2, -gender)
+```
+
+5.  Para un proceso de promoción de puesto, se requiere contar con una lista de candidatas. Seleccionar a las 4 empleadas mujeres con mayor experiencia en su campo laboral actual. ![](Charmeleon%20PNG.png){width="38" height="44"}
+
+```{r ejercicioI5, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioI5-solution}
+
+BD2 %>% 
+  filter(gender=="Female") %>% 
+  arrange(desc(currentFieldExperience)) %>% 
+  slice(1:4)
+```
+
+6.  El practicante de analítica en la empresa debe seleccionar las variables educación y escala de compensación de los empleados. Sin embargo, tiene el inconveniente de que no domina el inglés. Solo conoce que algunas palabras que terminan en "tion" en inglés pueden traducirse a "ción" en español. Ayudarlo a extraer estas dos variables, a partir de la sílaba "tion". ![](Charmeleon%20PNG.png){width="38" height="44"}
+
+```{r ejercicioI6, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioI6-solution}
+
+BD2 %>% 
+  select(contains("tion"))
+```
+
+7.  Se ha abierto una convocatoria de concurso de jóvenes investigadores. Seleccionar a los empleados de hasta 30 años con grado de doctor (PhD). Incluir únicamente su edad, educación y experiencia. Mostrar primero a los más jóvenes con mayor experiencia. ![](Charizard%20PNG.png){width="67"}
+
+```{r ejercicioI7, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioI7-solution}
+
+BD2 %>% 
+  filter(age<=30 & education=="PHD") %>% 
+  select(age, education, currentFieldExperience) %>% 
+  arrange(age) %>%
+  arrange(desc(currentFieldExperience))
+```
+
+------------------------------------------------------------------------
+
+### II. Ejercicios sobre cálculo de valores resumen de variables y creación de nuevas variables
+
+1.  Calcular el promedio y la desviación estándar de años de experiencia en el campo actual de los empleados, según grado académico. ![](Charmander%20PNG.png){width="26" height="30"}
+
+```{r ejercicioII1, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioII1-solution}
+
+BD2 %>% 
+  group_by(education) %>% 
+  summarise(promExp=mean(currentFieldExperience),desvEstExp=sd(currentFieldExperience))
+```
+
+2.  Indicar el número de empleados según grado académico y escala de compensación. ![](Charmander%20PNG.png){width="26" height="30"}
+
+```{r ejercicioII2, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioII2-solution}
+
+BD2 %>%
+  count(education, compensationTier)
+```
+
+3.  Crear nueva variable de años del trabajador en la empresa hasta el año 2021. ![](Charmander%20PNG.png){width="26" height="30"}
+
+```{r ejercicioII3, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioII3-solution}
+
+BD2 %>%
+  mutate(añosEnEmpresa=2021-joiningYear)
+```
+
+4.  La empresa está considerando implementar un programa de becas de cursos de educación ejecutiva para sus empleados. Solo considerará a los empleados con al menos 5 años de experiencia en su campo actual. Crear una nueva variable que indique si el empleado está habilitado (TRUE) o no (FALSE) para participar en este programa de becas. ![](Charmander%20PNG.png){width="26" height="30"}
+
+```{r ejercicioII4, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioII4-solution}
+
+BD2 %>%
+  mutate(habilitadoBeca=currentFieldExperience>=5)
+```
+
+5.  Gracias al éxito del programa de becas anterior, la empresa está considerando implementar un nuevo programa de becas para sus empleados, ahora para financiar maestrías. Solo considerará a los empleados con grado de bachiller que tengan al menos 8 años en la empresa hasta 2021. Crear una nueva variable que indique si el empleado está habilitado (TRUE) o no (FALSE) para participar en este programa de becas. ![](Charmeleon%20PNG.png){width="38" height="44"}
+
+```{r ejercicioII5, exercise=TRUE}
+
+#Escribir su solución aquí
+```
+
+```{r ejercicioII5-solution}
+
+BD2 %>%
+  filter(education=="Bachelors") %>% 
+  mutate(añosEnEmpresa=2021-joiningYear) %>%
+  mutate(habilitadoBeca=añosEnEmpresa>=8)
+```
